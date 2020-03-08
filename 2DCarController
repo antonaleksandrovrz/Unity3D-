@@ -1,0 +1,121 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class CarController : MonoBehaviour
+{
+    [SerializeField] Rigidbody2D rigidbody;
+    [SerializeField] GameObject[] frontTires = new GameObject[2];
+    [SerializeField] ParticleSystem smoke;
+    [SerializeField] TrailRenderer[] trails;
+
+    public float speed;
+    public float maxStopPower;
+    public float torqueForce;
+    public float driftFactorSticky;
+    public float driftFactorSlippy;
+    public float maxStickyVelocity;
+    public float minSlippyVelocity;
+    public float nitroPower;
+
+    public float MaxNitroTime;
+    public float currentNitroTime;
+    
+    private float boost = 0;
+    void Start()
+    {
+        rigidbody = GetComponent<Rigidbody2D>();
+    }
+
+    //task - every "foreach" loop should be optimazed with "for" loop
+    private void Update()
+    {
+        float hor = Input.GetAxis("Horizontal");
+
+        //if the car is turning -> tires should smoke
+        if (hor != 0)
+        {
+            smoke.enableEmission = true;
+
+        //if it's sliding -> nitro should increase
+            if (currentNitroTime < MaxNitroTime)
+            {
+                currentNitroTime += 0.2f * Time.deltaTime;
+            }
+        //sliding trails
+            foreach (var item in trails)
+            {
+                item.emitting = true;
+            }
+        //front tire object rotation
+            foreach (var item in frontTires)
+            {
+                item.transform.localRotation = Quaternion.Euler(0, 0, 25 * -hor);
+            }
+        }
+        //if the car is not turning - stop the trails and the smoke
+        else
+        {
+            smoke.enableEmission = false;
+
+            foreach (var item in trails)
+            {
+                item.emitting = false;
+            }
+        }
+      //Nitro impulse
+        if (Input.GetButtonDown("Boost") && currentNitroTime >= MaxNitroTime)
+        {
+            rigidbody.AddForce(transform.up * nitroPower, ForceMode2D.Impulse);
+            currentNitroTime = 0;
+        }
+
+        else
+        {
+            boost = 0;
+        }
+
+    }
+    //Physics part
+    void FixedUpdate()
+    {
+        float driftFactor = driftFactorSlippy;
+
+        //if the magnitite is too high -> it should start drifting
+        if (RightVelocity().magnitude > maxStickyVelocity)
+        {
+            driftFactor = driftFactorSlippy;
+        }
+
+
+        rigidbody.velocity = ForwardVelocity() + RightVelocity() * driftFactorSlippy;
+
+        if (Input.GetButton("Accelerate"))
+        {
+            rigidbody.AddForce(transform.up * (speed + boost));
+        }
+
+        if (Input.GetButton("Brake"))
+        {
+            rigidbody.AddForce(-transform.up * maxStopPower);
+        }
+
+        
+
+        float tf = Mathf.Lerp(0, torqueForce, rigidbody.velocity.magnitude / 5);
+
+        rigidbody.angularVelocity = Input.GetAxis("Horizontal") * tf;
+
+        
+    }
+
+    Vector2 ForwardVelocity()
+    {
+        return transform.up * Vector2.Dot(rigidbody.velocity, transform.up);
+    }
+
+    Vector2 RightVelocity()
+    {
+        return transform.right * Vector2.Dot(rigidbody.velocity, transform.right);
+    }
+}
