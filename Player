@@ -1,0 +1,187 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityStandardAssets.Characters.FirstPerson;
+using UnityEngine.UI;
+using System;
+
+public class Player : MonoBehaviour {
+
+    [SerializeField] public int Health = 100;
+    [SerializeField] public int Mana = 100;
+    [SerializeField] public int Coins = 0;
+    [SerializeField] bool isDeath = false;
+    public Texture2D[] damageSprites;
+    public RawImage image;
+    public Animator anim;
+    public Camera cam;
+    public RawImage Hp_Bar;
+    public RawImage Mana_Bar;
+
+    public Text hpCount;
+    public Text manaCount;
+    public Text CoinsCount;
+
+    [SerializeField] int HP_PotionCount;
+    [SerializeField] int Mana_PotionCount;
+
+    private void Start()
+    {
+        UpdateStats();
+        StartCoroutine(addHealth());
+    }
+
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Mouse0) && Mana > 10)
+        {
+            Attack();
+        }
+
+        if (Input.GetKey(KeyCode.LeftShift))
+        {
+            anim.SetBool("Run", true);
+        }
+
+        else
+        {
+            anim.SetBool("Run", false);
+        }
+
+        if(isDeath == true)
+        {
+            GetComponent<CharacterController>().enabled = false;
+            GetComponent<FirstPersonController>().enabled = false;
+        }
+
+        if (Input.GetKeyDown(KeyCode.R) && HP_PotionCount > 0)
+        {
+            UsePotion();
+        }
+
+        if (Input.GetKeyDown(KeyCode.F) && Mana_PotionCount > 0)
+        {
+            UsePotionMana();
+        }
+
+        GetDamage(0);
+    }
+
+    public void UsePotionMana()
+    {
+        if (Mana != 100 && Mana_PotionCount > 0)
+        {
+            Mana_Bar.transform.localScale = new Vector3(Mana, 1, 1);
+            if (Mana + 50 < 100)
+            {
+                Mana += 50;
+            }
+
+            else
+            {
+                Mana = 100;
+            }
+
+            Mana_PotionCount--;
+            UpdateStats();
+        }
+    }
+
+    public void UsePotion()
+    {
+        if(Health != 100 && HP_PotionCount > 0)
+        {
+            
+            if (Health + 50 < 100)
+            {
+                Health += 50;
+            }
+
+            else
+            {
+                Health = 100;
+            }
+            HP_PotionCount--;
+            UpdateStats();
+        }
+    }
+    public void GetDamage(int amountOfDamage)
+    {
+        
+
+        if (Health > 0)
+        {
+            if(Health - amountOfDamage > 0)
+            {
+                Health -= amountOfDamage;
+            }
+
+            else
+            {
+                Health = 0;
+                isDeath = true;
+            }
+
+            UpdateStats();
+        }
+
+        if(Health > 90)
+        {
+            image.texture = damageSprites[0];
+        }
+
+        else if (Health > 60)
+        {
+            image.texture = damageSprites[1];
+        }
+
+        else if (Health == 0)
+        {
+            image.texture = damageSprites[2];
+        }
+
+        else
+        {
+            image.texture = damageSprites[3];
+        }
+    }
+
+    void Attack()
+    {
+        anim.SetTrigger("Hit");
+        
+    }
+
+    public void UpdateStats()
+    {
+        Hp_Bar.transform.localScale = new Vector3(Health, 1, 1);
+        Mana_Bar.transform.localScale = new Vector3(Mana, 1, 1);
+        hpCount.text = (HP_PotionCount).ToString();
+        manaCount.text = (Mana_PotionCount).ToString();
+        CoinsCount.text = (Coins).ToString();
+    }
+
+    IEnumerator addHealth()
+    {
+        while (!isDeath)
+        { 
+            if (Health < 100 || Mana < 100)
+            { 
+                if (Health < 100)
+                {
+                    Health += 1;
+                }
+
+                if (Mana < 100)
+                {
+                    Mana += 1; 
+                }
+                UpdateStats();
+                yield return new WaitForSeconds(2);
+            }
+            else
+            { 
+                yield return null;
+            }
+        }
+    }
