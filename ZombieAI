@@ -1,0 +1,69 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.AI;
+
+public class zombie : MonoBehaviour {
+
+    public GameObject player;
+    NavMeshAgent agent;
+    Animator anim;
+    public int hp = 100;
+    public int damage = 40;
+    bool hit;
+
+    void Start()
+    {
+        agent = GetComponent<NavMeshAgent>();
+        anim = GetComponent<Animator>();
+    }
+
+    void Update()
+    {
+        if (!agent.pathPending)
+        {
+            if (agent.remainingDistance <= agent.stoppingDistance)
+            {
+                if (agent.hasPath || agent.velocity.sqrMagnitude == 0f)
+                {
+                    anim.SetBool("walk", false);
+                }
+            }
+
+            else
+            {
+                anim.SetBool("walk", true);
+            }
+        }
+
+        
+
+        if(hp <= 0)
+        {
+            anim.SetBool("death", true);
+            Destroy(GetComponent<NavMeshAgent>());
+            Destroy(this);
+        }
+
+    }
+    private void OnTriggerStay(Collider other)
+    {
+        if(other.tag == "Player")
+        {
+            agent.destination = other.transform.position;
+
+
+            if (Vector3.Distance(transform.position, other.transform.position) < 2)
+            {
+                anim.SetTrigger("hit");
+            }
+        }
+
+        
+    }
+
+    public void Hit()
+    {
+        player.GetComponent<PlayerStats>().GetDamage(damage);
+    }
+}
