@@ -1,0 +1,159 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class BuildSystem : MonoBehaviour
+{
+    //List of building objects
+    [SerializeField] private List<BuildingBlock> blocks = new List<BuildingBlock>();
+
+    //Maximum build distance and check if you can build
+    [SerializeField] private float maxDistance = 100;
+    [SerializeField] private bool CanBuild;
+    [SerializeField] private bool BuildingMode;
+
+    //Materials for the preview Object
+    [SerializeField] Material CanBuildMat;
+    [SerializeField] Material CannotBuildMat;
+
+    //Folder organize
+    [SerializeField] List<GameObject> folder = new List<GameObject>();
+    
+    //GameObjects
+    [SerializeField] GameObject preview;
+    private int CurrentSelectedBlock = 0;
+
+    //Private
+    Vector3 blockINTpoint;
+    GameObject parent;
+
+    private void Start()
+    {
+        parent = transform.gameObject;
+    }
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            if (!BuildingMode)
+            {
+                BuildingMode = true;
+                GetPreview();
+            }
+            else
+            {
+                BuildingMode = false;
+                Destroy(preview);
+            }
+        }
+
+        
+        if (BuildingMode)
+        {
+            RaycastHit hit;
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+            if (Physics.Raycast(ray, out hit, maxDistance))
+            {
+                Vector3 hitPoint = hit.point + (ray.direction.normalized * -0.01f);
+                blockINTpoint = new Vector3(Mathf.Round(hitPoint.x), Mathf.Round(hitPoint.y), Mathf.Round(hitPoint.z));
+                
+
+                if (hit.collider.gameObject.layer == 8)
+                {
+                    CanBuild = true;
+                    preview.GetComponentInChildren<Renderer>().material = CanBuildMat;
+                    preview.transform.position = blockINTpoint;
+                }
+
+                else if(hit.collider.gameObject.layer != 8)
+                {
+                    CanBuild = false;
+                    preview.transform.position = blockINTpoint;
+                    preview.GetComponentInChildren<Renderer>().material = CannotBuildMat;
+                }
+            }
+
+            if (CanBuild && Input.GetKeyDown(KeyCode.Mouse1))
+            {
+                Build(blocks[CurrentSelectedBlock], preview.transform);
+            }
+
+            if (CanBuild && Input.GetKeyDown(KeyCode.Mouse0) && Physics.Raycast(ray, out hit, maxDistance))
+            {
+                if (hit.collider.gameObject.layer == 8)
+                {
+                    Destroy(hit.collider.gameObject);
+                }
+            }
+
+            if (Input.GetKeyDown(KeyCode.Q))
+            {
+
+                preview.transform.rotation *= Quaternion.Euler(0, 90, 0);
+            }
+
+            if (Input.GetKeyDown(KeyCode.E))
+            {
+
+                preview.transform.rotation *= Quaternion.Euler( 90, 0, 0);
+            }
+
+            if (Input.GetAxisRaw("Mouse ScrollWheel") != 0f)
+            {
+                if (Input.GetAxisRaw("Mouse ScrollWheel") > 0)
+                {
+                    if (CurrentSelectedBlock < blocks.Count - 1)
+                    {
+                        CurrentSelectedBlock++;
+                        GetPreview();
+                    }
+
+                    else
+                    {
+                        CurrentSelectedBlock = 0;
+                        GetPreview();
+                    }
+                }
+
+                if (Input.GetAxisRaw("Mouse ScrollWheel") < 0)
+                {
+                    if (CurrentSelectedBlock > 0)
+                    {
+                        CurrentSelectedBlock--;
+                        GetPreview();
+                    }
+
+                    else
+                    {
+                        CurrentSelectedBlock = blocks.Count - 1;
+                        GetPreview();
+                    }
+                }
+            }
+        }
+        
+    }
+
+    void GetPreview()
+    {
+        Destroy(preview);
+        preview = Instantiate(blocks[CurrentSelectedBlock].mesh, new Vector3(0, 0, 0), Quaternion.identity);
+        preview.layer = 9;
+        Destroy(preview.GetComponent<BoxCollider>());
+        Destroy(preview.GetComponent<MeshCollider>());
+    }
+    void Build(BuildingBlock buildObject, Transform previewTransform)
+    {
+
+        foreach (var item in folder)
+        {
+            if(item.name == buildObject.type.ToString())
+            {
+                parent = item;
+            }
+            
+        }
+        Instantiate(buildObject.mesh, previewTransform.position, previewTransform.rotation , parent.transform);
+    }
+}
